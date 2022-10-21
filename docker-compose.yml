@@ -1,0 +1,136 @@
+services:
+  # more info https://hub.docker.com/r/linuxserver/plex
+  plex:
+    image: lscr.io/linuxserver/plex:latest
+    container_name: plex
+    network_mode: host
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - VERSION=docker
+    volumes:
+      - /path/to/data:/config
+      - rclone:/gdrive # mapping the rclone volume defined at the bottom to the gdrive directory on the container
+    restart: unless-stopped
+
+
+  # more info https://hub.docker.com/r/linuxserver/radarr
+  radarr:
+    image: lscr.io/linuxserver/radarr:latest
+    container_name: radarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/London
+    volumes:
+      - /path/to/data:/config
+      - /path/to/downloads:/downloads # needs the same download directory as transmission
+      - rclone:/gdrive # mapping the rclone volume defined at the bottom to the gdrive directory on the container
+    ports:
+      - 7878:7878
+    restart: unless-stopped
+
+
+  # more info https://hub.docker.com/r/linuxserver/sonarr
+  sonarr:
+    image: lscr.io/linuxserver/sonarr:latest
+    container_name: sonarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/London
+    volumes:
+      - /path/to/data:/config
+      - /path/to/downloads:/downloads # needs the same download directory as transmission
+      - rclone:/gdrive # mapping the rclone volume defined at the bottom to the gdrive directory on the container
+    ports:
+      - 8989:8989
+    restart: unless-stopped
+
+
+  # more info https://hub.docker.com/r/linuxserver/bazarr
+  bazarr:
+    image: lscr.io/linuxserver/bazarr:latest
+    container_name: bazarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/London
+    volumes:
+      - /path/to/data:/config
+      - /path/to/downloads:/downloads # needs the same download directory as transmission
+      - rclone:/gdrive # mapping the rclone volume defined at the bottom to the gdrive directory on the container
+    ports:
+      - 6767:6767
+    restart: unless-stopped
+
+  
+  # more info https://hub.docker.com/r/linuxserver/prowlarr
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr:develop
+    container_name: prowlarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/London
+    volumes:
+      - /path/to/data:/config
+    ports:
+      - 9696:9696
+    restart: unless-stopped
+
+
+  # VERY OPTIONAL
+  # more info https://hub.docker.com/r/linuxserver/tautulli
+  tautulli:
+    image: lscr.io/linuxserver/tautulli:latest
+    container_name: tautulli
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/London
+    volumes:
+      - /path/to/data:/config
+    ports:
+      - 8181:8181
+    restart: unless-stopped
+
+
+  # more info https://hub.docker.com/r/linuxserver/transmission
+  transmission:
+    image: lscr.io/linuxserver/transmission:latest
+    container_name: transmission
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/London
+      - TRANSMISSION_WEB_HOME=/flood-for-transmission/
+      - USER=ChangeMyUsername
+      - PASS=ChangeMyPassword
+      - PEERPORT=51413 # bittorrent port, can be whatever
+    volumes:
+      - /path/to/data:/config
+      - /path/to/downloads:/downloads
+    ports:
+      - 9091:9091 # this is the webui port, internally has to be 9091, external can be whatever
+      - 51413:51413 # bittorrent port, can be whatever externally or internally, needs to be the same as PEERPORT in environment
+      - 51413:51413/udp
+    restart: unless-stopped
+
+
+volumes:
+  rclone: # if you change this, you'll also need to change the volumes above from rclone:/gdrive to whatever:/gdrive
+    driver: rclone
+    driver_opts:
+      remote: 'YOUR-REMOTE-CRYPT:' # use your crypt remote name or just the regular one if not using encryption
+      allow_other: 'true'
+      umask: 002 
+      dir_cache_time: 5000h 
+      poll_interval: 10s
+      vfs_cache_mode: full
+      vfs_cache_max_size: 200G # max size of cache
+      vfs_cache_max_age: 10h # max age of cache
+      vfs_cache_poll_interval: 5m
+      vfs_write_back: 1h # how long to wait before uploading the files to the remote
+    # look at the documentation for an explanation of these flags and for more flags to add if you need them
+    # animosity22 also explains them well: https://github.com/animosity22/homescripts/blob/master/systemd/rclone-movies.service
